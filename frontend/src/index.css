@@ -1,0 +1,91 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── Backgrounds ── */
+  --bg:       #0d0d0d;
+  --bg1:      #111111;
+  --bg2:      #161616;
+  --bg3:      #1c1c1c;
+
+  /* ── Surfaces ── */
+  --surface:  #161616;
+  --surface2: #1c1c1c;
+  --surface3: #232323;
+
+  /* ── Borders ── */
+  --border:   #222222;
+  --border2:  #2e2e2e;
+  --border3:  #3a3a3a;
+
+  /* ── Accent — single amber, used sparingly ── */
+  --accent:   #e8a020;
+  --accent2:  #f0b040;
+  --accent3:  rgba(232,160,32,0.10);
+
+  /* ── Semantic — muted, not shouty ── */
+  --green:    #22c55e;
+  --green-bg: rgba(34,197,94,0.07);
+  --green-b:  rgba(34,197,94,0.18);
+
+  --red:      #ef4444;
+  --red-bg:   rgba(239,68,68,0.07);
+  --red-b:    rgba(239,68,68,0.18);
+
+  --yellow:   #e8a020;
+  --yellow-bg:rgba(232,160,32,0.07);
+  --yellow-b: rgba(232,160,32,0.18);
+
+  --blue:     #60a5fa;
+  --blue-bg:  rgba(96,165,250,0.07);
+  --blue-b:   rgba(96,165,250,0.18);
+
+  /* ── Text ── */
+  --text:     #e8e8e8;
+  --text2:    #8a8a8a;
+  --text3:    #484848;
+
+  /* ── Typography ── */
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+
+  /* ── Radii ── */
+  --r:    3px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

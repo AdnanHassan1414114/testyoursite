@@ -1,0 +1,47 @@
+# dependencies
+node_modules/
+
+# build files
+dist/
+build/
+
+# environment variables
+.env
+.env.local
+
+# logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# cache
+.cache/# dependencies
+node_modules/
+
+# build files
+dist/
+build/
+
+# environment variables
+.env
+.env.local
+
+# logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# cache
+.cache/
