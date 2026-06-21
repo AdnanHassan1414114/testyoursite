@@ -1,3 +1,4 @@
+import { apiUrl } from './apiConfig';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import HomePage from './pages/HomePage';
 import RunPage  from './pages/RunPage';
@@ -54,7 +55,7 @@ function Sidebar({ page, navigate, activeRunId, refreshTrigger, sidebarOpen, set
   const pollRef               = useRef(null);
 
   const fetchRuns = useCallback(() => {
-    fetch('/api/tests/runs')
+    fetch(apiUrl('/api/tests/runs'))
       .then(r => r.json())
       .then(setRuns)
       .catch(() => {});
@@ -182,7 +183,7 @@ export default function App() {
 
   const handleRetry = async (url, feature, credentials = {}) => {
     try {
-      const res  = await fetch('/api/tests/run', {
+      const res  = await fetch(apiUrl('/api/tests/run'), {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ url, feature, ...credentials }),

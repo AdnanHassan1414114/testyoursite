@@ -1,3 +1,4 @@
+import { apiUrl } from '../apiConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import './RunPage.css';
 
@@ -307,7 +308,7 @@ function FullReport({ runId }) {
   const [err, setE] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/reports/${runId}`)
+    fetch(apiUrl(`/api/reports/${runId}`))
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(setD).catch(e => setE(e.message));
   }, [runId]);
@@ -535,7 +536,7 @@ export default function RunPage({ runId, onBack, onRetry }) {
 
     const poll = async () => {
       try {
-        const r = await fetch(`/api/tests/run/${runId}`);
+        const r = await fetch(apiUrl(`/api/tests/run/${runId}`));
         if (!r.ok) {
           const j = await r.json().catch(() => ({}));
           setErr(j.error || `Server ${r.status}`);

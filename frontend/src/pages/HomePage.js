@@ -1,3 +1,4 @@
+import { apiUrl } from '../apiConfig';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './HomePage.css';
 
@@ -146,7 +147,7 @@ export default function HomePage({ onRunStarted }) {
 
   // ── Load features ─────────────────────────────────────────────────────────
   useEffect(() => {
-    fetch('/api/tests/features')
+    fetch(apiUrl('/api/tests/features'))
       .then(r => r.json())
       .then(data => { setFeatures(data); if (data.length) setFeature(data[0]); })
       .catch(() => {
@@ -232,7 +233,7 @@ export default function HomePage({ onRunStarted }) {
         testToken:    creds.token    || undefined,
         testOtp:      creds.otp      || undefined,
       };
-      const res  = await fetch('/api/tests/run', {
+      const res  = await fetch(apiUrl('/api/tests/run'), {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
