@@ -3,25 +3,49 @@
  * ──────────────────────
  * Database connection pool + schema initialisation.
  *
+ * Connects to Supabase PostgreSQL (or any managed Postgres provider) via
+ * DATABASE_URL. There is NO localhost/Docker fallback — DATABASE_URL is
+ * required in every environment (local dev included; see _env.example).
+ *
+ * SSL is required by Supabase (and most managed Postgres providers) and is
+ * enabled unconditionally. `rejectUnauthorized: false` is used because
+ * Supabase's pooler presents a certificate chain that Node's default CA
+ * bundle does not always validate, which is the standard, documented way
+ * node-postgres is configured against Supabase. The connection itself is
+ * still encrypted — this only skips strict CA-chain verification.
+ *
  * Placed at backend root so routes/ and agents/ can import it as:
  *   import { pool } from '../db.js';
- *
- * Changes vs original:
- *   • test_runs gains a `feature` column (TEXT DEFAULT 'login')
- *     so every run records which authentication feature was tested.
- *   • All other tables are unchanged from the original schema.
  */
 
-import pg      from 'pg';
-import dotenv  from 'dotenv';
+import pg     from 'pg';
+import dotenv from 'dotenv';
 dotenv.config();
 
 const { Pool } = pg;
 
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    '[db] DATABASE_URL is not set. Add it to your .env file (local dev) or ' +
+    'your Railway service variables (production). See _env.example.'
+  );
+}
+
 export const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    'postgresql://postgres:password@localhost:5432/login_tester',
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+  // Sensible pool defaults for a small backend service. Tune these if you
+  // see "too many connections" errors from Supabase under load.
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+});
+
+pool.on('error', (err) => {
+  // Catches errors on idle connections in the pool so a transient network
+  // blip doesn't crash the whole process — without this handler, an
+  // uncaught 'error' event on the pool takes the entire Node process down.
+  console.error('[db] Unexpected error on idle client:', err.message);
 });
 
 async function addColumnIfMissing(client, table, column, definition) {
@@ -66,6 +90,7 @@ export async function initDb() {
         network_errors  JSONB       DEFAULT '[]',
         screenshot_path TEXT,
         duration_ms     INT,
+        meta            JSONB       DEFAULT '{}',
         created_at      TIMESTAMPTZ DEFAULT NOW()
       );
     `);
@@ -168,6 +193,7 @@ export async function initDb() {
     await addColumnIfMissing(client, 'test_runs', 'feature', "TEXT NOT NULL DEFAULT 'login'");
     await addColumnIfMissing(client, 'test_runs', 'test_email',    'TEXT');
     await addColumnIfMissing(client, 'test_runs', 'test_password', 'TEXT');
+    await addColumnIfMissing(client, 'test_results', 'meta', "JSONB DEFAULT '{}'");
     await addColumnIfMissing(client, 'api_requests', 'pathname',       'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'auth_label',     'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'initiator_type', 'TEXT');
