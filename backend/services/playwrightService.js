@@ -34,17 +34,25 @@ function findChromePath() {
   } catch (_) {}
 
   const candidates = [
-    '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable',
-    '/usr/bin/chromium',      '/usr/bin/chromium-browser',
+    // ── Nix / Railway ──
+    '/run/current-system/sw/bin/chromium',
+    '/nix/var/nix/profiles/default/bin/chromium',
+    // ── Linux ──
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/opt/google/chrome/chrome',
+    // ── macOS ──
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    '/opt/google/chrome/chrome',
+    // ── Puppeteer cache (local) ──
     `${process.env.HOME}/.cache/puppeteer/chrome/linux-131.0.6778.204/chrome-linux64/chrome`,
   ];
   for (const p of candidates) {
     if (p && fs.existsSync(p)) return p;
   }
-  for (const cmd of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']) {
+  for (const cmd of ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable']) {
     try {
       const found = execSync(`which ${cmd} 2>/dev/null`).toString().trim();
       if (found && fs.existsSync(found)) return found;
