@@ -1,2 +1,2 @@
 [phases.setup]
-nixPkgs = ["chromium"]
+nixPkgs = ["chromium", "glib", "gobject-introspection", "nspr", "nss", "atk", "at-spi2-atk", "dbus", "cups", "libdrm", "libxkbcommon", "mesa", "xorg.libX11", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libxcb", "xorg.libxshmfence", "cairo", "pango", "expat", "libgbm", "alsa-lib"]
