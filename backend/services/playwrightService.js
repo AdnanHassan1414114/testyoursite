@@ -230,7 +230,7 @@ export async function detectPageElements(url) {
 
 // ── API observer ──────────────────────────────────────────────────────────────
 
-async function attachApiObserver(page) {
+async function attachApiObserver(page, pageUrl) {
   const capturedRequests = [];
   let   observationIndex = 0;
 
@@ -241,7 +241,7 @@ async function attachApiObserver(page) {
 
     if (!shouldCapture(method, url)) { await route.continue(); return; }
 
-    const obs = createObservation(method, url);
+    const obs = createObservation(method, url, pageUrl);
     obs.id    = observationIndex++;
     obs.requestHeaders = req.headers();
 
@@ -324,7 +324,7 @@ export async function runTestCase(testCase, pageInfo, runId) {
     networkErrors.push(`${req.method()} ${req.url()} — ${req.failure()?.errorText ?? 'failed'}`);
   });
 
-  const capturedRequests = await attachApiObserver(page);
+  const capturedRequests = await attachApiObserver(page, pageInfo.url);
 
   let status        = 'passed';
   let errorMessage  = null;
@@ -388,20 +388,37 @@ export async function runTestCase(testCase, pageInfo, runId) {
     await page.waitForTimeout(2500);
 
     // ── Outcome heuristics ────────────────────────────────────────────────
+    // NOTE: these are page-level signals only (URL/DOM text). They do NOT
+    // know about captured API responses (status codes, tokens, cookies).
+    // AuthenticationAgent.js combines this result with API findings to
+    // produce the final severity shown in the UI — see _combineSeverity().
     const currentUrl  = page.url();
     const pageContent = await page.content();
 
     const errorPatterns   = [/invalid/i, /incorrect/i, /wrong/i, /error/i, /failed/i, /not found/i, /unauthorized/i, /bad credentials/i];
     const successPatterns = [/dashboard/i, /home/i, /welcome/i, /logout/i, /sign out/i];
 
-    const hasError   = errorPatterns.some(p => p.test(pageContent)) ||
+    const hasError = errorPatterns.some(p => p.test(pageContent)) ||
       (consoleErrors.length > 0 && testCase.expectedOutcome === 'success');
-    const hasSuccess = successPatterns.some(p => p.test(currentUrl)) || currentUrl !== pageInfo.url;
+
+    // A same-origin navigation to a page matching a known success pattern
+    // is meaningful. A bare URL change is NOT — third-party identity
+    // providers (Google/OAuth, MFA prompts, consent screens) change the
+    // URL constantly without indicating the test's outcome either way.
+    let originChanged = false;
+    try {
+      originChanged = new URL(currentUrl).origin !== new URL(pageInfo.url).origin;
+    } catch (_) {}
+
+    const hasSuccess = successPatterns.some(p => p.test(currentUrl)) ||
+      (currentUrl !== pageInfo.url && !originChanged);
 
     if (testCase.expectedOutcome === 'success') {
-      if (!hasSuccess && hasError) {
+      if (!hasSuccess || hasError) {
         status       = 'failed';
-        errorMessage = 'Expected success but got an error response.';
+        errorMessage = hasError
+          ? 'Expected success but got an error response.'
+          : 'Expected success but no success indicator (URL/page change) was observed.';
       }
     } else {
       if (hasSuccess && !hasError) {

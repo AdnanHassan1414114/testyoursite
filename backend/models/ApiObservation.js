@@ -112,15 +112,26 @@ export function classifyUrl(url) {
 
 /**
  * Create a zero-value ApiObservation.
+ *
  * @param {string} method
  * @param {string} url
+ * @param {string|null} [pageUrl]  — the URL of the page under test. Used to
+ *   tag this request as same-site or third-party (e.g. a Google OAuth call
+ *   triggered from your login page). Pass null/omit if unknown.
  * @returns {ApiObservation}
  */
-export function createObservation(method, url) {
+export function createObservation(method, url, pageUrl = null) {
   let pathname = url;
   try { pathname = new URL(url).pathname; } catch { /* keep raw */ }
 
   const { isAuthRelated, authLabel } = classifyUrl(url);
+
+  let isThirdParty = false;
+  if (pageUrl) {
+    try {
+      isThirdParty = new URL(url).hostname !== new URL(pageUrl).hostname;
+    } catch { /* leave as false if either URL is unparseable */ }
+  }
 
   return {
     id: null,                   // caller may set to a sequential index or UUID
@@ -129,6 +140,7 @@ export function createObservation(method, url) {
     pathname,
     isAuthRelated,
     authLabel,
+    isThirdParty,                // true = a call to a domain other than the page under test (e.g. Google, an SSO provider)
     requestHeaders:      {},
     requestPayload:      null,
     responseStatus:      null,

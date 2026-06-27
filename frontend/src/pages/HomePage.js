@@ -125,7 +125,12 @@ export default function HomePage({ onRunStarted }) {
   const [showModal, setShowModal]       = useState(false);
   const [loading, setLoading]           = useState(false);
   const [submitError, setSubmitError]   = useState('');
-  const [showPw, setShowPw]             = useState(false);
+  const [showPwFields, setShowPwFields]  = useState(new Set());
+  const togglePw = (key) => setShowPwFields(prev => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
   const [focusedIdx, setFocusedIdx]     = useState(-1);
   const [toast, setToast]               = useState('');
   const firstInputRef = useRef(null);
@@ -245,6 +250,7 @@ export default function HomePage({ onRunStarted }) {
         return;
       }
       closeModal();
+      setCredentials({ email: '', password: '', username: '', token: '', otp: '' }); // reset only on successful run start
       setLoading(false);
       showToast('Test run started successfully');
       onRunStarted(data.runId);
@@ -272,7 +278,7 @@ export default function HomePage({ onRunStarted }) {
     setShowModal(false);
     setFieldErrors({});
     setSubmitError('');
-    setCredentials({ email: '', password: '', username: '', token: '', otp: '' });
+    // FIX: credentials are preserved across close/reopen — only reset after a run actually starts
   };
 
   // ── Focus first field when modal opens ───────────────────────────────────
@@ -312,10 +318,14 @@ export default function HomePage({ onRunStarted }) {
   return (
     <div className="home">
       <div className="home-hero">
-        <h1 className="hero-title">Authentication Feature Testing Platform</h1>
+        <div className="hero-badge">
+          <span className="hero-badge-dot" />
+          AI-Powered Auth Testing
+        </div>
+        <h1 className="hero-title">Authentication QA, automated.</h1>
         <p className="hero-sub">
-          Select an authentication feature, paste the page URL, and let the AI-powered
-          agent run a comprehensive QA suite — login, signup, OTP, sessions, and more.
+          Select a feature, paste your login URL, and get a full suite of security
+          and UX tests — login, signup, OTP, sessions, and more.
         </p>
       </div>
 
@@ -488,7 +498,7 @@ export default function HomePage({ onRunStarted }) {
                       <input
                         id={`modal-${field.key}`}
                         className={`modal-input modal-pw-input ${fieldErrors[field.key] ? 'input-error' : ''}`}
-                        type={showPw ? 'text' : 'password'}
+                        type={showPwFields.has(field.key) ? 'text' : 'password'}
                         placeholder={field.placeholder}
                         value={credentials[field.key] || ''}
                         onChange={e => setField(field.key, e.target.value)}
@@ -498,10 +508,10 @@ export default function HomePage({ onRunStarted }) {
                       <button
                         className="modal-pw-toggle"
                         type="button"
-                        onClick={() => setShowPw(p => !p)}
+                        onClick={() => togglePw(field.key)}
                         tabIndex={-1}
                       >
-                        {showPw ? '🙈' : '👁'}
+                        {showPwFields.has(field.key) ? '🙈' : '👁'}
                       </button>
                     </div>
                   ) : (

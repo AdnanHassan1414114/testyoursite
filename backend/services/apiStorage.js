@@ -24,8 +24,8 @@ export async function saveObservation(client, { runId, testResultId, observation
        id, run_id, test_result_id, method, url, pathname, auth_label, initiator_type,
        request_headers, request_payload,
        response_status, response_headers, response_payload, response_time_ms,
-       is_auth_related, error, captured_at
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+       is_auth_related, is_third_party, error, captured_at
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
     [
       requestId, runId, testResultId,
       obs.method, obs.url, obs.pathname ?? null, obs.authLabel ?? null, obs.initiatorType ?? null,
@@ -36,6 +36,7 @@ export async function saveObservation(client, { runId, testResultId, observation
       obs.responsePayload != null ? JSON.stringify(obs.responsePayload) : null,
       obs.responseTimeMs  ?? null,
       obs.isAuthRelated   ?? false,
+      obs.isThirdParty    ?? false,
       obs.error           ?? null,
       obs.capturedAt      != null ? new Date(obs.capturedAt) : null,
     ]

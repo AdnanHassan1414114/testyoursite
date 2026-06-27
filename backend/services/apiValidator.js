@@ -172,6 +172,61 @@ export function validateApiRequests(observations, testName, expectedOutcome) {
   return dedup(findings);
 }
 
+// ── Plain-English summary ─────────────────────────────────────────────────────
+// Turns technical findings into ONE sentence a non-technical tester can read
+// and immediately understand. Used by AuthenticationAgent.js to fill
+// test_results.summary — shown at the top of the test detail view, before
+// any raw API data.
+
+const PLAIN_CATEGORY = {
+  missing_auth_token:    () => 'the page moved on but no login session was actually created',
+  missing_session_token: () => 'the page moved on but no login session was actually created',
+  unexpected_status:     (f) => `the server replied with a status code (${f.detail?.status ?? '?'}) that wasn't expected for this test`,
+  network_failure:       () => "the request never got a response — the server may be unreachable",
+  server_error:          () => 'the server crashed while handling the request',
+  rate_limited:          () => 'the server is blocking requests for being too frequent',
+  method_not_allowed:    () => "the endpoint rejected the type of request that was sent",
+  slow_response:         () => 'the server took a noticeably long time to respond',
+  very_slow_response:    () => 'the server took a very long time to respond',
+  token_not_validated:   () => 'an invalid or expired code was accepted as if it were valid',
+  email_enumeration:     () => 'the error message reveals whether an email address is already registered',
+  session_not_cleared:   () => 'logging out did not actually end the session',
+  insecure_cookie:       () => 'the session cookie is missing a security flag that protects against script-based attacks',
+  missing_rate_limit:    () => 'repeated wrong attempts were not blocked or slowed down',
+  schema_inconsistency:  () => 'the same endpoint returned differently-shaped responses across tests',
+};
+
+/**
+ * @param {'passed'|'failed'} playwrightStatus
+ * @param {Finding[]} findings
+ * @returns {string} one plain-English sentence
+ */
+export function buildPlainSummary(playwrightStatus, findings) {
+  if (playwrightStatus === 'failed' && findings.length === 0) {
+    return "This didn't behave as expected, and no specific server-side reason was captured. Check the error message and screenshot.";
+  }
+
+  const errorFindings = findings.filter(f => f.severity === 'error');
+  const warnFindings  = findings.filter(f => f.severity === 'warning');
+  const top           = errorFindings[0] ?? warnFindings[0];
+
+  if (!top) {
+    return playwrightStatus === 'passed'
+      ? 'This worked as expected — no issues found.'
+      : "This didn't behave as expected.";
+  }
+
+  const explainer = PLAIN_CATEGORY[top.category]?.(top) ?? top.message;
+  const lead = playwrightStatus === 'passed'
+    ? 'This looked like it worked, but '
+    : 'This failed because ';
+
+  const extra = findings.length > 1 ? ` (${findings.length - 1} more issue${findings.length > 2 ? 's' : ''} found)` : '';
+
+  return `${lead}${explainer}.${extra}`;
+}
+
+
 export function validateSchemaConsistency(allTestObservations) {
   const findings       = [];
   const endpointSchemas = new Map();

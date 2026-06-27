@@ -48,7 +48,17 @@ function deriveTag(r) {
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
 
-function Badge({ status }) {
+function Badge({ status, severity }) {
+  // severity (from test_results.severity) reflects BOTH Playwright's outcome
+  // AND API findings. A 'passed' test with warning/error findings should not
+  // show a plain green PASS — that's the exact bug where "Valid Login" showed
+  // PASS next to 4 warnings about a missing auth token.
+  if (status === 'passed' && severity === 'warning') {
+    return <span className="rp-badge rp-badge--warning">△ PASS WITH ISSUES</span>;
+  }
+  if (status === 'passed' && severity === 'error') {
+    return <span className="rp-badge rp-badge--failed">✗ FAIL</span>;
+  }
   return (
     <span className={`rp-badge rp-badge--${status}`}>
       {status === 'passed' ? '✓ PASS' : '✗ FAIL'}
@@ -504,6 +514,7 @@ export default function RunPage({ runId, onBack, onRetry }) {
   const [filter, setFilter] = useState('all');  // 'all' | 'passed' | 'failed'
   const [copied, setCopied] = useState(null);   // key of copied item
   const [fetchErr, setErr]  = useState(null);
+  const [showThirdParty, setShowThirdParty] = useState(new Set()); // test ids with third-party calls expanded
   const pollRef = useRef(null);
   const retries  = useRef(0);
   const copyRef  = useRef(null);
@@ -514,6 +525,14 @@ export default function RunPage({ runId, onBack, onRetry }) {
       clearTimeout(copyRef.current);
       copyRef.current = setTimeout(() => setCopied(null), 1800);
     }).catch(() => {});
+  };
+
+  const toggleThirdParty = (testId) => {
+    setShowThirdParty(prev => {
+      const next = new Set(prev);
+      if (next.has(testId)) next.delete(testId); else next.add(testId);
+      return next;
+    });
   };
 
   // ── Polling — start immediately, show skeleton while waiting ─────────────
@@ -841,7 +860,9 @@ export default function RunPage({ runId, onBack, onRetry }) {
           )}
 
           {results.filter(r => filter === 'all' || r.status === filter).map(r => {
-            const relApis  = apiRequests.filter(a => a.test_result_id === r.id && a.is_auth_related);
+            const relApis    = apiRequests.filter(a => a.test_result_id === r.id && a.is_auth_related);
+            const yourApis   = relApis.filter(a => !a.is_third_party);
+            const otherApis  = relApis.filter(a => a.is_third_party);
             const relFinds = apiFindings.filter(f => f.test_result_id === r.id);
             const rc       = rcMap.get(r.id);
             const tag      = deriveTag(r);
@@ -887,14 +908,21 @@ export default function RunPage({ runId, onBack, onRetry }) {
                         {isSlow ? '⚠ ' : ''}{r.duration_ms}ms
                       </span>
                     )}
-                    <Badge status={r.status} />
+                    <Badge status={r.status} severity={r.severity} />
                     <span className="rp-chevron">{expanded ? '▲' : '▼'}</span>
                   </div>
                 </div>
 
                 {expanded && (
                   <div className="rp-test-detail">
-                    {/* Credentials */}
+                    {/* Verdict — one plain sentence, shown before anything else */}
+                    {r.summary && (
+                      <div className={`rp-verdict rp-verdict--${r.severity || 'clean'}`}>
+                        {r.summary}
+                      </div>
+                    )}
+
+                    {/* Credentials used for this test */}
                     <div className="rp-detail-grid">
                       <div className="rp-detail-row">
                         <span className="rp-detail-label">Email</span>
@@ -916,16 +944,16 @@ export default function RunPage({ runId, onBack, onRetry }) {
                       )}
                     </div>
 
-                    {/* Auth API calls */}
-                    {relApis.length > 0 && (
+                    {/* Your app's auth calls — third-party (Google, etc.) hidden by default */}
+                    {yourApis.length > 0 && (
                       <div className="rp-detail-section">
-                        <div className="rp-detail-title">Auth API Calls</div>
-                        {relApis.map(a => (
+                        <div className="rp-detail-title">What your app called</div>
+                        {yourApis.map(a => (
                           <div key={a.id} className="rp-inline-api">
                             <Method m={a.method} />
                             <span className="rp-api-path">{a.pathname ?? safePathname(a.url)}</span>
                             <Code n={a.response_status} />
-                            {a.response_time_ms && (
+                            {a.response_time_ms != null && (
                               <span className={`rp-timing ${a.response_time_ms > 3000 ? 'rp-timing--slow' : ''}`}>
                                 {a.response_time_ms}ms
                               </span>
@@ -935,10 +963,33 @@ export default function RunPage({ runId, onBack, onRetry }) {
                       </div>
                     )}
 
-                    {/* API findings inline */}
+                    {otherApis.length > 0 && (
+                      <div className="rp-detail-section">
+                        <button
+                          className="rp-thirdparty-toggle"
+                          onClick={(e) => { e.stopPropagation(); toggleThirdParty(r.id); }}
+                        >
+                          {showThirdParty.has(r.id) ? '▲' : '▼'}{' '}
+                          {otherApis.length} call{otherApis.length !== 1 ? 's' : ''} to other services (not your app)
+                        </button>
+                        {showThirdParty.has(r.id) && (
+                          <div className="rp-thirdparty-list">
+                            {otherApis.map(a => (
+                              <div key={a.id} className="rp-inline-api rp-inline-api--muted">
+                                <Method m={a.method} />
+                                <span className="rp-api-path">{a.pathname ?? safePathname(a.url)}</span>
+                                <Code n={a.response_status} />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Issues — plain language, only when something needs attention */}
                     {relFinds.length > 0 && (
                       <div className="rp-detail-section">
-                        <div className="rp-detail-title">Issues</div>
+                        <div className="rp-detail-title">What needs attention</div>
                         {relFinds.map((f, i) => (
                           <div key={i} className={`rp-finding-inline rp-finding-inline--${f.severity}`}>
                             <Chip severity={f.severity} />
@@ -948,34 +999,11 @@ export default function RunPage({ runId, onBack, onRetry }) {
                       </div>
                     )}
 
-                    {/* Root cause */}
+                    {/* Root cause — only for genuine failures */}
                     {r.status === 'failed' && rc && (
                       <div className="rp-detail-section">
-                        <div className="rp-detail-title">Root Cause Analysis</div>
+                        <div className="rp-detail-title">Likely cause</div>
                         <RootCauseBlock rc={rc} compact />
-                      </div>
-                    )}
-
-                    {/* Console errors */}
-                    {(parseJson(r.console_errors) || []).filter(Boolean).length > 0 && (
-                      <div className="rp-detail-section">
-                        <div className="rp-detail-title">Console Errors</div>
-                        {(parseJson(r.console_errors) || []).map((e, i) => (
-                          <code key={i} className="rp-console-err">{e}</code>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Screenshot */}
-                    {r.screenshot_path && (
-                      <div className="rp-detail-section">
-                        <div className="rp-detail-title">Screenshot</div>
-                        <img
-                          src={r.screenshot_path}
-                          alt={r.test_name}
-                          className="rp-screenshot"
-                          onError={e => { e.target.style.display = 'none'; }}
-                        />
                       </div>
                     )}
                   </div>
@@ -1007,7 +1035,7 @@ export default function RunPage({ runId, onBack, onRetry }) {
               return (
                 <div key={r.id} className="rp-api-group">
                   <div className="rp-api-group-head">
-                    <Badge status={r.status} />
+                    <Badge status={r.status} severity={r.severity} />
                     <span className="rp-api-group-name">{r.test_name}</span>
                     <span className="rp-api-group-count">{relApis.length} req</span>
                   </div>
@@ -1037,7 +1065,7 @@ export default function RunPage({ runId, onBack, onRetry }) {
                   return (
                     <div key={r.id} className="rp-issues-group">
                       <div className="rp-issues-group-head">
-                        <Badge status={r.status} />
+                        <Badge status={r.status} severity={r.severity} />
                         <span className="rp-issues-group-name">{r.test_name}</span>
                         <span className={`rp-issue-pill ${rf.some(f => f.severity === 'error') ? 'rp-issue-pill--red' : 'rp-issue-pill--yellow'}`}>
                           {rf.length}

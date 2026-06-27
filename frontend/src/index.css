@@ -1,28 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
   /* ── Backgrounds ── */
-  --bg:       #0d0d0d;
-  --bg1:      #111111;
-  --bg2:      #161616;
-  --bg3:      #1c1c1c;
+  --bg:       #0A0A0F;
+  --bg1:      #12121A;
+  --bg2:      #1A1A24;
+  --bg3:      #1E1E2A;
 
   /* ── Surfaces ── */
-  --surface:  #161616;
-  --surface2: #1c1c1c;
-  --surface3: #232323;
+  --surface:  #12121A;
+  --surface2: rgba(26,26,36,0.6);
+  --surface3: rgba(26,26,36,0.8);
 
   /* ── Borders ── */
-  --border:   #222222;
-  --border2:  #2e2e2e;
-  --border3:  #3a3a3a;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.12);
+  --border3:  rgba(255,255,255,0.18);
 
-  /* ── Accent — single amber, used sparingly ── */
-  --accent:   #e8a020;
-  --accent2:  #f0b040;
-  --accent3:  rgba(232,160,32,0.10);
+  /* ── Accent — warm amber ── */
+  --accent:   #F59E0B;
+  --accent2:  #D97706;
+  --accent3:  rgba(245,158,11,0.12);
 
-  /* ── Semantic — muted, not shouty ── */
+  /* ── Semantic ── */
   --green:    #22c55e;
   --green-bg: rgba(34,197,94,0.07);
   --green-b:  rgba(34,197,94,0.18);
@@ -31,28 +33,40 @@
   --red-bg:   rgba(239,68,68,0.07);
   --red-b:    rgba(239,68,68,0.18);
 
-  --yellow:   #e8a020;
-  --yellow-bg:rgba(232,160,32,0.07);
-  --yellow-b: rgba(232,160,32,0.18);
+  /* warning uses orange, separate from amber accent */
+  --yellow:   #F59E0B;
+  --yellow-bg:rgba(245,158,11,0.08);
+  --yellow-b: rgba(245,158,11,0.2);
+
+  --orange:   #fb923c;
+  --orange-bg:rgba(251,146,60,0.08);
+  --orange-b: rgba(251,146,60,0.2);
 
   --blue:     #60a5fa;
   --blue-bg:  rgba(96,165,250,0.07);
   --blue-b:   rgba(96,165,250,0.18);
 
   /* ── Text ── */
-  --text:     #e8e8e8;
-  --text2:    #8a8a8a;
-  --text3:    #484848;
+  --text:     #FAFAFA;
+  --text2:    #A1A1AA;
+  --text3:    #71717A;
 
   /* ── Typography ── */
-  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
+  --display: 'Space Grotesk', system-ui, sans-serif;
+  --sans:    'Inter', system-ui, sans-serif;
+  --mono:    'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
 
   /* ── Radii ── */
-  --r:    3px;
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 8px;
+  --r:    4px;
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  /* ── Glows ── */
+  --glow-sm:  0 0 20px rgba(245,158,11,0.12);
+  --glow-md:  0 0 40px rgba(245,158,11,0.18);
+  --glow-btn: 0 0 20px rgba(245,158,11,0.4);
 }
 
 body {
@@ -65,27 +79,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes blink {
-  0%,100% { opacity: 1; }
-  50%      { opacity: 0.3; }
-}
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position:  400px 0; }
-}
-@keyframes modalIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.99); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
+@keyframes spin    { from { transform: rotate(0deg); }   to { transform: rotate(360deg); } }
+@keyframes fadeIn  { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes blink   { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+@keyframes modalIn { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }

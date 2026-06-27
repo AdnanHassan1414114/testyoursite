@@ -20,7 +20,7 @@
 import { v4 as uuidv4 }        from 'uuid';
 import { detectPageElements, runTestCase }        from '../services/playwrightService.js';
 import { scanPageForContext, generateEdgeCases }  from '../services/aiService.js';
-import { validateApiRequests, validateSchemaConsistency } from '../services/apiValidator.js';
+import { validateApiRequests, validateSchemaConsistency, buildPlainSummary } from '../services/apiValidator.js';
 import { saveObservationBatch, saveFindingsBatch, saveCrossRunFindings } from '../services/apiStorage.js';
 import { analyzeFailure }       from '../services/failureAnalysisService.js';
 import { getFeature }           from '../features/registry.js';
@@ -199,6 +199,19 @@ export class AuthenticationAgent {
           });
         }
 
+        // Combine Playwright's page-level outcome with API-level findings into
+        // a single severity so the UI badge can't show green "PASS" next to
+        // red/amber issues — see _combineSeverity() for the rule.
+        const severity = this._combineSeverity(result.status, allFindings);
+        // One plain-English sentence explaining the result — shown first in
+        // the UI, before any raw API data, so a non-technical tester knows
+        // what happened without reading logs.
+        const summary = buildPlainSummary(result.status, allFindings);
+        await pool.query(
+          `UPDATE test_results SET severity = $1, summary = $2 WHERE id = $3`,
+          [severity, summary, resultId]
+        ).catch(err => this.onProgress(`[AuthAgent] Could not persist severity/summary: ${err.message}`));
+
         // ── Step 7: AI Failure Analysis ──────────────────────────────────────
         if (result.status === 'failed') {
           try {
@@ -265,6 +278,27 @@ export class AuthenticationAgent {
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Combine Playwright's page-level pass/fail with API-level findings into
+   * one severity value: 'clean' | 'warning' | 'error'.
+   *
+   * Rationale: Playwright's heuristic only looks at the page (URL/DOM text).
+   * It can't see that a "successful" login returned no token/cookie, or that
+   * a request silently 404'd. Findings catch that — but were previously only
+   * shown as a side pill, disconnected from the green/red badge. This makes
+   * the badge reflect the worst signal across BOTH sources.
+   *
+   * @param {'passed'|'failed'} playwrightStatus
+   * @param {Array<{severity: 'error'|'warning'|'info'}>} findings
+   * @returns {'clean'|'warning'|'error'}
+   */
+  _combineSeverity(playwrightStatus, findings) {
+    if (playwrightStatus === 'failed') return 'error';
+    if (findings.some(f => f.severity === 'error'))   return 'error';
+    if (findings.some(f => f.severity === 'warning')) return 'warning';
+    return 'clean';
+  }
 
   async _saveRootCause(resultId, analysis) {
     await this.pool.query(

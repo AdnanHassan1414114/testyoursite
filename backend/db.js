@@ -85,6 +85,8 @@ export async function initDb() {
         email           TEXT,
         password        TEXT,
         status          TEXT        NOT NULL,
+        severity        TEXT        NOT NULL DEFAULT 'clean',
+        summary         TEXT,
         error_message   TEXT,
         console_errors  JSONB       DEFAULT '[]',
         network_errors  JSONB       DEFAULT '[]',
@@ -113,6 +115,7 @@ export async function initDb() {
         response_payload JSONB,
         response_time_ms INT,
         is_auth_related  BOOLEAN     DEFAULT FALSE,
+        is_third_party   BOOLEAN     DEFAULT FALSE,
         error            TEXT,
         captured_at      TIMESTAMPTZ,
         created_at       TIMESTAMPTZ DEFAULT NOW()
@@ -194,11 +197,18 @@ export async function initDb() {
     await addColumnIfMissing(client, 'test_runs', 'test_email',    'TEXT');
     await addColumnIfMissing(client, 'test_runs', 'test_password', 'TEXT');
     await addColumnIfMissing(client, 'test_results', 'meta', "JSONB DEFAULT '{}'");
+    // 'severity' reflects status PLUS API findings (e.g. a UI 'passed' test
+    // that returned no auth token still shows as 'warning', not silently green).
+    await addColumnIfMissing(client, 'test_results', 'severity', "TEXT NOT NULL DEFAULT 'clean'");
+    // 'summary' is one plain-English sentence explaining the result, shown
+    // first in the UI before any raw API data.
+    await addColumnIfMissing(client, 'test_results', 'summary', 'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'pathname',       'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'auth_label',     'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'initiator_type', 'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'error',          'TEXT');
     await addColumnIfMissing(client, 'api_requests', 'captured_at',    'TIMESTAMPTZ');
+    await addColumnIfMissing(client, 'api_requests', 'is_third_party', 'BOOLEAN DEFAULT FALSE');
     await addColumnIfMissing(client, 'api_requests', 'test_result_id',
       'UUID REFERENCES test_results(id) ON DELETE CASCADE');
     await addColumnIfMissing(client, 'api_findings', 'explain',     'TEXT');
